@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Para Ti</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a0b0e 0%, #4a0e18 50%, #290818 100%);
+            touch-action: none; /* Previene scroll en celular */
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .center-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 2;
+            pointer-events: none; /* Permite clickear a través del texto */
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 105, 180, 0.8);
+            font-family: 'Dancing Script', cursive;
+            animation: latido 3s infinite ease-in-out;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin: 0;
+            color: #ffdde1;
+        }
+
+        p {
+            font-size: 1.5rem;
+            margin-top: 10px;
+            color: #ee9ca7;
+            opacity: 0.9;
+        }
+
+        @keyframes latido {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); text-shadow: 0 0 20px rgba(255, 50, 100, 1); }
+        }
+
+        /* Ajustes para móvil */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            p { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="center-text">
+        <h1>Eres mi Universo</h1>
+        <p>No sigas enojada conmigo por favor.</p>
+        <p>Ojalá poder darte muchos besitos</p>
+
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+        
+        // Coordenadas del mouse/touch
+        let mouse = { x: null, y: null };
+
+        // Configuración inicial del tamaño
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Detectar movimiento (Mouse y Touch)
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+            createParticles(3); // Crea 3 partículas por movimiento
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+            createParticles(3);
+        });
+
+        window.addEventListener('touchstart', (e) => {
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+            createParticles(5);
+        });
+
+        // Clase Partícula (Corazón)
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                // Tamaño aleatorio
+                this.size = Math.random() * 15 + 5; 
+                // Velocidad aleatoria para dispersión
+                this.speedX = Math.random() * 3 - 1.5;
+                this.speedY = Math.random() * 3 - 1.5;
+                // Colores románticos aleatorios
+                const colors = ['#ff6b6b', '#f06595', '#cc5de8', '#ff9797', '#ffffff'];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.life = 100; // Vida de la partícula (se desvanece)
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                // Efecto de gravedad inversa lenta (flotan hacia arriba un poco)
+                this.speedY -= 0.02; 
+                // Reducir tamaño y vida
+                if (this.size > 0.2) this.size -= 0.1;
+                this.life -= 1.5;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.globalAlpha = this.life / 100;
+                ctx.fillStyle = this.color;
+                
+                // Dibujar forma de corazón
+                ctx.beginPath();
+                let topCurveHeight = this.size * 0.3;
+                ctx.moveTo(0, topCurveHeight);
+                // Curvas bezier para el corazón
+                ctx.bezierCurveTo(0, 0, -this.size / 2, 0, -this.size / 2, topCurveHeight);
+                ctx.bezierCurveTo(-this.size / 2, (this.size + topCurveHeight) / 2, 0, (this.size + topCurveHeight) / 2 + this.size/2, 0, this.size);
+                ctx.bezierCurveTo(0, (this.size + topCurveHeight) / 2 + this.size/2, this.size / 2, (this.size + topCurveHeight) / 2, this.size / 2, topCurveHeight);
+                ctx.bezierCurveTo(this.size / 2, 0, 0, 0, 0, topCurveHeight);
+                
+                ctx.fill();
+                
+                // Añadir un brillo (glow)
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.restore();
+            }
+        }
+
+        function createParticles(amount) {
+            for (let i = 0; i < amount; i++) {
+                particles.push(new Particle(mouse.x, mouse.y));
+            }
+        }
+
+        // Bucle de animación
+        function animate() {
+            // Efecto de rastro: No borramos todo, pintamos un negro semitransparente encima
+            // Esto crea el efecto de que las partículas viejas se desvanecen lentamente
+            ctx.fillStyle = 'rgba(26, 11, 14, 0.2)'; 
+            ctx.fillRect(0, 0, width, height);
+
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+
+                // Eliminar partículas muertas
+                if (particles[i].life <= 0 || particles[i].size <= 0.2) {
+                    particles.splice(i, 1);
+                    i--;
+                }
+            }
+            
+            // Partículas automáticas de fondo (para que no esté vacío si no mueven el mouse)
+            if(Math.random() < 0.05) {
+                mouse.x = Math.random() * width;
+                mouse.y = Math.random() * height;
+                createParticles(1);
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
